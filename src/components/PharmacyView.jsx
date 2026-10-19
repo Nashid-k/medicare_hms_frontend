@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiUrl } from '../services/api.js';
 
-export default function PharmacyView({ data, onRefresh, showToast }) {
+export default function PharmacyView({ data, currentUser, activeRole, onRefresh, showToast }) {
   const { inventory = [], prescriptions = [], auditLogs = [] } = data || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -92,7 +92,7 @@ export default function PharmacyView({ data, onRefresh, showToast }) {
     const res = await fetch(apiUrl(`/api/prescriptions/${rxId}/dispense`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dispensedBy: 'Dr. Sarah Jenkins' })
+      body: JSON.stringify({ dispensedBy: currentUser?.name || 'PharmD. R. Vance' })
     });
     if (res.ok) {
       showToast('Prescription dispensed & batch inventory deducted in MongoDB!');

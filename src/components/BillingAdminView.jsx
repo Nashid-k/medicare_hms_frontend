@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiUrl } from '../services/api.js';
 
-export default function BillingAdminView({ data, onRefresh, showToast }) {
+export default function BillingAdminView({ data, activeRole, currentUser, onRefresh, showToast }) {
   const {
     stats = {},
     invoices = [],
@@ -500,12 +500,14 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
                   Attending Physician Roster
                 </h2>
               </div>
-              <button
-                onClick={() => setShowDocModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-label-sm text-[11px]"
-              >
-                + Onboard MD
-              </button>
+              {activeRole === 'Admin' && (
+                <button
+                  onClick={() => setShowDocModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-primary text-on-primary font-label-sm text-[11px]"
+                >
+                  + Onboard MD
+                </button>
+              )}
             </div>
 
             <div className="flex flex-col gap-2.5">
@@ -538,18 +540,20 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
             </div>
           </div>
 
-          {/* System Administration */}
+          {/* System Administration / Front Desk Operations */}
           <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container-highest flex flex-col gap-space-md">
             <div className="flex items-center justify-between">
               <h3 className="font-headline-sm text-headline-sm text-on-surface">
-                System Administration &amp; DB Control
+                {activeRole === 'Admin' ? 'System Administration & Governance' : 'Front Desk Intake Billing'}
               </h3>
               <span className="material-symbols-outlined text-primary">
-                admin_panel_settings
+                {activeRole === 'Admin' ? 'admin_panel_settings' : 'point_of_sale'}
               </span>
             </div>
             <p className="font-body-sm text-body-sm text-on-surface-variant">
-              Manage clinical invoices and doctor records using the controls on this page.
+              {activeRole === 'Admin'
+                ? 'Manage hospital claims, department financial velocity, and physician onboarding.'
+                : 'Generate visit invoices, process patient co-pays, and issue payment receipts.'}
             </p>
           </div>
         </div>

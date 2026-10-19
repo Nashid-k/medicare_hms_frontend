@@ -113,7 +113,9 @@ export default function App() {
           'x-user-role': currentUser?.role || '',
           'x-user-email': currentUser?.email || '',
           'x-user-id': currentUser?._id || '',
+          'x-user-name': currentUser?.name || '',
           'x-patient-name': currentUser?.name || '',
+          'x-doctor-name': currentUser?.name || '',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
       });
@@ -384,34 +386,44 @@ export default function App() {
     globalSearch.trim().length > 1
       ? (dashboardData?.patients || []).filter((p) => {
           const search = globalSearch.toLowerCase();
-          return (
+          const matchBasic =
             p.name.toLowerCase().includes(search) ||
-            p.mrn.toLowerCase().includes(search) ||
-            (p.diagnosis && p.diagnosis.toLowerCase().includes(search))
-          );
+            p.mrn.toLowerCase().includes(search);
+          if (activeRole === 'Doctor' || activeRole === 'Admin') {
+            return matchBasic || (p.diagnosis && p.diagnosis.toLowerCase().includes(search));
+          }
+          return matchBasic;
         })
       : [];
 
-  const clinicalAlerts = [
-    ...(dashboardData?.labs || [])
-      .filter((lab) => lab.flag === 'Critical' || lab.flag === 'High')
-      .map((lab) => ({
-        id: lab._id,
-        title: `${lab.testName} ${lab.flag} alert`,
-        detail: `${lab.patientName || 'Patient'} · ${lab.mrn || 'Unknown MRN'}`,
-        module: 'ward-labs',
-        severity: lab.flag === 'Critical' ? 'Critical' : 'High'
-      })),
-    ...(dashboardData?.inventory || [])
-      .filter((item) => item.status === 'Low Stock' || item.quantity <= item.minLevel)
-      .map((item) => ({
-        id: item._id,
-        title: `${item.medicineName} stock low`,
-        detail: `${item.quantity} units remaining`,
-        module: 'pharmacy-inventory',
-        severity: item.status === 'Quarantine' ? 'Critical' : 'High'
-      }))
-  ].slice(0, 5);
+  const clinicalAlerts = (() => {
+    const alerts = [];
+    if (activeRole === 'Doctor' || activeRole === 'Admin') {
+      const labAlerts = (dashboardData?.labs || [])
+        .filter((lab) => lab.flag === 'Critical' || lab.flag === 'High')
+        .map((lab) => ({
+          id: lab._id,
+          title: `${lab.testName} ${lab.flag} alert`,
+          detail: `${lab.patientName || 'Patient'} · ${lab.mrn || 'Unknown MRN'}`,
+          module: 'ward-labs',
+          severity: lab.flag === 'Critical' ? 'Critical' : 'High'
+        }));
+      alerts.push(...labAlerts);
+    }
+    if (activeRole === 'Pharmacy' || activeRole === 'Admin') {
+      const stockAlerts = (dashboardData?.inventory || [])
+        .filter((item) => item.status === 'Low Stock' || item.quantity <= item.minLevel)
+        .map((item) => ({
+          id: item._id,
+          title: `${item.medicineName} stock low`,
+          detail: `${item.quantity} units remaining`,
+          module: 'pharmacy-inventory',
+          severity: item.status === 'Quarantine' ? 'Critical' : 'High'
+        }));
+      alerts.push(...stockAlerts);
+    }
+    return alerts.slice(0, 5);
+  })();
 
   const renderModuleContent = () => {
     switch (activeModuleId) {
@@ -436,11 +448,11 @@ export default function App() {
           />
         );
       case 'pharmacy-inventory':
-        return <PharmacyView data={dashboardData} onRefresh={fetchAllData} showToast={showToast} />;
+        return <PharmacyView data={dashboardData} currentUser={currentUser} activeRole={activeRole} onRefresh={fetchAllData} showToast={showToast} />;
       case 'ward-labs':
-        return <WardAndLabView data={dashboardData} onRefresh={fetchAllData} showToast={showToast} />;
+        return <WardAndLabView data={dashboardData} currentUser={currentUser} activeRole={activeRole} onRefresh={fetchAllData} showToast={showToast} />;
       case 'billing-and-invoices':
-        return <BillingAdminView data={dashboardData} onRefresh={fetchAllData} showToast={showToast} />;
+        return <BillingAdminView data={dashboardData} currentUser={currentUser} activeRole={activeRole} onRefresh={fetchAllData} showToast={showToast} />;
       case 'dashboard':
       default:
         return (
@@ -478,8 +490,8 @@ export default function App() {
               <button type="button" data-testid="close-mobile-navigation" aria-label="Close navigation" className="lg:hidden material-symbols-outlined text-[20px] text-on-surface-variant" onClick={() => setIsMobileMenuOpen(false)}>close</button>
             </div>
 
-            {/* Patient Search bar: strictly for Clinical Staff (Doctor, Reception, Admin) - NOT for patients */}
-            {activeRole !== 'Patient' && (
+            {/* Patient Search bar: strictly for Clinical & Administrative Staff (Doctor, Reception, Admin) - NOT for patients or pharmacy */}
+            {['Doctor', 'Reception', 'Admin'].includes(activeRole) && (
               <div className="p-3 border-b border-surface-container-highest">
                 <label className="text-[11px] text-on-surface-variant uppercase tracking-wide block mb-2">Patient search</label>
                 <input
@@ -572,7 +584,9 @@ export default function App() {
                     <span className="material-symbols-outlined text-[18px]">notifications</span>
                     {clinicalAlerts.length > 0 && <span className="absolute -top-1 -right-1 block h-2.5 w-2.5 rounded-full bg-error"></span>}
                   </button>
-                  <button type="button" data-testid="header-new-consultation-button" onClick={() => setIsNewConsultationOpen(true)} className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-primary text-on-primary px-3 font-label-md text-label-md shadow-sm">New consultation</button>
+                  {['Doctor', 'Reception', 'Admin'].includes(activeRole) && (
+                    <button type="button" data-testid="header-new-consultation-button" onClick={() => setIsNewConsultationOpen(true)} className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-xl bg-primary text-on-primary px-3 font-label-md text-label-md shadow-sm">New consultation</button>
+                  )}
                 </div>
               </div>
               {isAlertsOpen && clinicalAlerts.length > 0 && (

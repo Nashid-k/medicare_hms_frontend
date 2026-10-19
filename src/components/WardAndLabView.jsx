@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiUrl } from '../services/api.js';
 
-export default function WardAndLabView({ data, onRefresh, showToast }) {
+export default function WardAndLabView({ data, currentUser, activeRole, onRefresh, showToast }) {
   const { beds = [], labs = [], patients = [] } = data || {};
   const [selectedBed, setSelectedBed] = useState(null);
   const [assignPatientMrn, setAssignPatientMrn] = useState('');
@@ -24,7 +24,7 @@ export default function WardAndLabView({ data, onRefresh, showToast }) {
         status: 'Occupied',
         patientName: pt.name,
         mrn: pt.mrn,
-        attendingDoctor: pt.attendingDoctor || 'Dr. Sarah Jenkins',
+        attendingDoctor: pt.attendingDoctor || currentUser?.name || 'Dr. Sarah Jenkins',
         acuity: pt.acuity || 'Amber',
         admittedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
         diagnosis: assignDiagnosis || pt.chronicConditions?.[0] || 'Inpatient Telemetry'

@@ -36,6 +36,11 @@ export default function AppointmentsView({
     currentUser?.role === 'patient' ||
     String(currentUser?.role || '').toLowerCase() === 'patient';
 
+  const isDoctor =
+    activeRole === 'Doctor' ||
+    data?.role === 'doctor' ||
+    String(currentUser?.role || '').toLowerCase() === 'doctor';
+
   const { appointments = [], doctors = [], patients = [] } = data || {};
   const [subView, setSubView] = useState('both'); // 'booking' | 'queue' | 'both'
   const [selectedDept, setSelectedDept] = useState('Cardiology Wing');
@@ -161,15 +166,15 @@ export default function AppointmentsView({
         <div className="flex flex-col">
           <div className="flex items-center gap-space-xs">
             <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-semibold">
-              {isPatient ? 'Personal Care Schedule' : 'Central Triage & Rostering'}
+              {isPatient ? 'Personal Care Schedule' : isDoctor ? 'Physician Consultation Schedule' : 'Central Triage & Rostering'}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-code-sm text-code-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
-              {isPatient ? 'Verified Patient Session' : 'Atomic Slot Mutex Active'}
+              {isPatient ? 'Verified Patient Session' : isDoctor ? 'Attending Physician Active' : 'Atomic Slot Mutex Active'}
             </span>
           </div>
           <h1 className="font-headline-lg-mobile text-headline-lg-mobile sm:font-headline-lg sm:text-headline-lg text-on-surface tracking-tight mt-1">
-            {isPatient ? 'My Appointments & Booking' : 'Appointment Operations & Queue Engine'}
+            {isPatient ? 'My Appointments & Booking' : isDoctor ? 'My Scheduled Consultations & Clinical Queue' : 'Appointment Operations & Queue Engine'}
           </h1>
         </div>
 
