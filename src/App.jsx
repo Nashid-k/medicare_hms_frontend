@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from './services/api.js';
 import DashboardView from './components/DashboardView.jsx';
 import AppointmentsView from './components/AppointmentsView.jsx';
 import PatientWorkspaceView from './components/PatientWorkspaceView.jsx';
@@ -106,7 +107,7 @@ export default function App() {
 
   const fetchAllData = useCallback(async () => {
     try {
-      const dashRes = await fetch('/api/dashboard', {
+      const dashRes = await fetch(apiUrl('/api/dashboard'), {
         headers: { 'x-user-role': currentUser.role }
       });
       if (!dashRes.ok) return;
@@ -206,7 +207,7 @@ export default function App() {
     setAuthError('');
     setAuthLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword })
@@ -235,7 +236,7 @@ export default function App() {
 
     setAuthLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(apiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -270,7 +271,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch(apiUrl('/api/auth/logout'), { method: 'POST' });
     } catch {
       // ignore
     }
@@ -299,7 +300,7 @@ export default function App() {
     try {
       let pt = dashboardData?.patients?.find((p) => p.name.toLowerCase() === newConsultData.patientName.toLowerCase());
       if (!pt) {
-        const ptRes = await fetch('/api/patients', {
+        const ptRes = await fetch(apiUrl('/api/patients'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -324,7 +325,7 @@ export default function App() {
       slotStart.setMinutes(Math.ceil((slotStart.getMinutes() + 1) / 30) * 30, 0, 0);
       const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
 
-      const appointmentRes = await fetch('/api/appointments', {
+      const appointmentRes = await fetch(apiUrl('/api/appointments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

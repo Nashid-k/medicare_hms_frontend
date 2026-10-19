@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../services/api.js';
 
 export default function PharmacyView({ data, onRefresh, showToast }) {
   const { inventory = [], prescriptions = [], auditLogs = [] } = data || {};
@@ -57,7 +58,7 @@ export default function PharmacyView({ data, onRefresh, showToast }) {
       return;
     }
     try {
-      const res = await fetch('/api/pharmacy/dispense', {
+      const res = await fetch(apiUrl('/api/pharmacy/dispense'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,7 +89,7 @@ export default function PharmacyView({ data, onRefresh, showToast }) {
   };
 
   const handleDispenseRx = async (rxId) => {
-    const res = await fetch(`/api/prescriptions/${rxId}/dispense`, {
+    const res = await fetch(apiUrl(`/api/prescriptions/${rxId}/dispense`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dispensedBy: 'Dr. Sarah Jenkins' })
@@ -101,7 +102,7 @@ export default function PharmacyView({ data, onRefresh, showToast }) {
 
   const handleAddBatchSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/inventory', {
+    const res = await fetch(apiUrl('/api/inventory'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -126,7 +127,7 @@ export default function PharmacyView({ data, onRefresh, showToast }) {
 
   const handleAdjustStock = async (batch, delta) => {
     const newQty = Math.max(0, batch.quantity + delta);
-    await fetch(`/api/inventory/${batch._id}`, {
+    await fetch(apiUrl(`/api/inventory/${batch._id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quantity: newQty })

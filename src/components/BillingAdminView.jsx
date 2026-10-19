@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../services/api.js';
 
 export default function BillingAdminView({ data, onRefresh, showToast }) {
   const {
@@ -36,7 +37,7 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
     if (!selectedBill) return;
     setPayingLoading(true);
     try {
-      const orderRes = await fetch('/api/payments/create-order', {
+      const orderRes = await fetch(apiUrl('/api/payments/create-order'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,7 +53,7 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
 
       let paymentVerified = false;
       if (orderData.orderId && orderData.signature) {
-        const verifyRes = await fetch('/api/payments/verify', {
+        const verifyRes = await fetch(apiUrl('/api/payments/verify'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -105,7 +106,7 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
       showToast('Enter a valid invoice amount greater than zero.');
       return;
     }
-    const res = await fetch('/api/invoices', {
+    const res = await fetch(apiUrl('/api/invoices'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -133,7 +134,7 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
   };
 
   const handleInvoiceStatus = async (invId, status) => {
-    await fetch(`/api/invoices/${invId}`, {
+    await fetch(apiUrl(`/api/invoices/${invId}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
@@ -144,7 +145,7 @@ export default function BillingAdminView({ data, onRefresh, showToast }) {
 
   const handleAddDoctor = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/doctors', {
+    const res = await fetch(apiUrl('/api/doctors'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../services/api.js';
 
 export default function WardAndLabView({ data, onRefresh, showToast }) {
   const { beds = [], labs = [], patients = [] } = data || {};
@@ -16,7 +17,7 @@ export default function WardAndLabView({ data, onRefresh, showToast }) {
     const pt = patients.find((p) => p.mrn === assignPatientMrn) || patients[0];
     if (!pt) return;
 
-    const res = await fetch(`/api/beds/${selectedBed._id}`, {
+    const res = await fetch(apiUrl(`/api/beds/${selectedBed._id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -38,7 +39,7 @@ export default function WardAndLabView({ data, onRefresh, showToast }) {
   };
 
   const handleReleaseBed = async (bed, nextStatus) => {
-    await fetch(`/api/beds/${bed._id}`, {
+    await fetch(apiUrl(`/api/beds/${bed._id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -59,7 +60,7 @@ export default function WardAndLabView({ data, onRefresh, showToast }) {
   const handleUpdateLabResult = async (e) => {
     e.preventDefault();
     if (!editingLab) return;
-    const res = await fetch(`/api/labs/${editingLab._id}`, {
+    const res = await fetch(apiUrl(`/api/labs/${editingLab._id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

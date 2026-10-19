@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../services/api.js';
 
 export default function PatientWorkspaceView({
   data,
@@ -100,7 +101,7 @@ export default function PatientWorkspaceView({
 
   const handleSaveVitals = async (e) => {
     e.preventDefault();
-    const res = await fetch(`/api/patients/${activePatient._id}/vitals`, {
+    const res = await fetch(apiUrl(`/api/patients/${activePatient._id}/vitals`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(vitalsForm)
@@ -117,7 +118,7 @@ export default function PatientWorkspaceView({
   const handleAddClinicalNote = async (e) => {
     e.preventDefault();
     if (!soapForm.soapNote.trim()) return;
-    const res = await fetch(`/api/patients/${activePatient._id}/notes`, {
+    const res = await fetch(apiUrl(`/api/patients/${activePatient._id}/notes`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -154,7 +155,7 @@ export default function PatientWorkspaceView({
 
   const handleFinishConsultation = async () => {
     try {
-      const res = await fetch('/api/consultations', {
+      const res = await fetch(apiUrl('/api/consultations'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,7 +202,7 @@ export default function PatientWorkspaceView({
 
   const handleIssuePrescription = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/prescriptions', {
+    const res = await fetch(apiUrl('/api/prescriptions'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -233,7 +234,7 @@ export default function PatientWorkspaceView({
 
   const handleOrderLab = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/labs', {
+    const res = await fetch(apiUrl('/api/labs'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -257,7 +258,7 @@ export default function PatientWorkspaceView({
 
   const handleCreatePatient = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/patients', {
+    const res = await fetch(apiUrl('/api/patients'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../services/api.js';
 
 const DEPARTMENTS = [
   { id: 'Cardiology Wing', name: 'Cardiology Wing', icon: 'cardiology', beds: '47/50', wait: '8m' },
@@ -64,7 +65,7 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
     setSubmitting(true);
     setConflictError('');
     try {
-      const res = await fetch('/api/appointments', {
+      const res = await fetch(apiUrl('/api/appointments'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +103,7 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
   };
 
   const handleStatusChange = async (aptId, newStatus) => {
-    await fetch(`/api/appointments/${aptId}`, {
+    await fetch(apiUrl(`/api/appointments/${aptId}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -115,7 +116,7 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
   };
 
   const handleDeleteAppointment = async (aptId) => {
-    await fetch(`/api/appointments/${aptId}`, { method: 'DELETE' });
+    await fetch(apiUrl(`/api/appointments/${aptId}`), { method: 'DELETE' });
     showToast('Appointment slot released');
     onRefresh();
   };
