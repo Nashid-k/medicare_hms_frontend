@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiUrl } from '../services/api.js';
 
 const DEPARTMENTS = [
@@ -23,7 +23,19 @@ const TIME_SLOTS = [
   '04:00 PM'
 ];
 
-export default function AppointmentsView({ data, onRefresh, showToast }) {
+export default function AppointmentsView({
+  data,
+  currentUser,
+  activeRole,
+  onRefresh,
+  showToast
+}) {
+  const isPatient =
+    activeRole === 'Patient' ||
+    data?.role === 'patient' ||
+    currentUser?.role === 'patient' ||
+    String(currentUser?.role || '').toLowerCase() === 'patient';
+
   const { appointments = [], doctors = [], patients = [] } = data || {};
   const [subView, setSubView] = useState('both'); // 'booking' | 'queue' | 'both'
   const [selectedDept, setSelectedDept] = useState('Cardiology Wing');
@@ -32,8 +44,10 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
-  const [patientName, setPatientName] = useState('Marcus Vance');
-  const [mrn, setMrn] = useState('MC-8821');
+  const [patientName, setPatientName] = useState(
+    data?.patientProfile?.name || currentUser?.name || 'Marcus Vance'
+  );
+  const [mrn, setMrn] = useState(data?.patientProfile?.mrn || 'MC-8821');
   const [visitType, setVisitType] = useState('New Consultation');
   const [priority, setPriority] = useState('Routine');
   const [reason, setReason] = useState('');
@@ -41,6 +55,17 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [conflictError, setConflictError] = useState('');
   const [lastBookedRef, setLastBookedRef] = useState(null);
+
+  useEffect(() => {
+    if (isPatient) {
+      if (data?.patientProfile?.name || currentUser?.name) {
+        setPatientName(data?.patientProfile?.name || currentUser?.name);
+      }
+      if (data?.patientProfile?.mrn) {
+        setMrn(data?.patientProfile?.mrn);
+      }
+    }
+  }, [isPatient, data?.patientProfile, currentUser]);
 
   const deptDoctors = doctors.filter((d) => d.department === selectedDept);
   const activeDoctors = deptDoctors.length > 0 ? deptDoctors : doctors;
@@ -121,7 +146,11 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
     onRefresh();
   };
 
-  const filteredAppointments = appointments.filter(
+  const patientAppointments = isPatient
+    ? appointments.filter((a) => (mrn && a.mrn === mrn) || (patientName && a.patientName === patientName))
+    : appointments;
+
+  const filteredAppointments = patientAppointments.filter(
     (a) => statusFilter === 'ALL' || a.status === statusFilter
   );
 
@@ -132,14 +161,15 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
         <div className="flex flex-col">
           <div className="flex items-center gap-space-xs">
             <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-semibold">
-              Central Triage &amp; Rostering
+              {isPatient ? 'Personal Care Schedule' : 'Central Triage & Rostering'}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-code-sm text-code-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> Atomic Slot Mutex Active
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+              {isPatient ? 'Verified Patient Session' : 'Atomic Slot Mutex Active'}
             </span>
           </div>
           <h1 className="font-headline-lg-mobile text-headline-lg-mobile sm:font-headline-lg sm:text-headline-lg text-on-surface tracking-tight mt-1">
-            Appointment Operations &amp; Queue Engine
+            {isPatient ? 'My Appointments & Booking' : 'Appointment Operations & Queue Engine'}
           </h1>
         </div>
 
@@ -154,7 +184,7 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
             }`}
           >
             <span className="material-symbols-outlined text-[16px] sm:text-[18px]">splitscreen</span>
-            <span className="hidden sm:inline">Split Command View</span>
+            <span className="hidden sm:inline">Split View</span>
             <span className="sm:hidden">Split</span>
           </button>
           <button
@@ -166,8 +196,8 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
             }`}
           >
             <span className="material-symbols-outlined text-[16px] sm:text-[18px]">calendar_month</span>
-            <span className="hidden sm:inline">Booking Engine</span>
-            <span className="sm:hidden">Booking</span>
+            <span className="hidden sm:inline">Book Appointment</span>
+            <span className="sm:hidden">Book</span>
           </button>
           <button
             onClick={() => setSubView('queue')}
@@ -178,10 +208,10 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
             }`}
           >
             <span className="material-symbols-outlined text-[16px] sm:text-[18px]">table_rows</span>
-            <span className="hidden sm:inline">Live Queue Board</span>
-            <span className="sm:hidden">Queue</span>
-            <span className="count-pill ml-0.5 px-1.5 py-0.5 bg-error text-on-error rounded-full font-code-sm text-[10px] sm:text-code-sm">
-              {appointments.length}
+            <span className="hidden sm:inline">{isPatient ? 'My Appointments' : 'Live Queue Board'}</span>
+            <span className="sm:hidden">{isPatient ? 'My Visits' : 'Queue'}</span>
+            <span className="count-pill ml-0.5 px-1.5 py-0.5 bg-primary text-on-primary rounded-full font-code-sm text-[10px] sm:text-code-sm">
+              {patientAppointments.length}
             </span>
           </button>
         </div>
@@ -192,7 +222,7 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
         <div className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-surface-container-highest flex flex-col justify-between">
           <div className="flex flex-wrap items-start justify-between gap-1.5">
             <span className="font-label-md text-label-md text-on-surface-variant">
-              Total Scheduled Today
+              {isPatient ? 'My Total Appointments' : 'Total Scheduled Today'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-[18px]">event_available</span>
@@ -200,32 +230,34 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
           </div>
           <div className="flex items-baseline gap-space-sm mt-3">
             <span className="font-headline-xl text-headline-xl text-on-surface tracking-tight tabular-nums">
-              {appointments.length}
+              {patientAppointments.length}
             </span>
             <span className="font-body-sm text-body-sm text-secondary font-medium">
-              ↑ Live MongoDB Sync
+              ↑ Live Sync
             </span>
           </div>
           <div className="w-full bg-surface-container mt-3 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-primary h-full rounded-full" style={{ width: '76%' }}></div>
+            <div className="bg-primary h-full rounded-full" style={{ width: '100%' }}></div>
           </div>
         </div>
 
         <div className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-surface-container-highest flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="font-label-md text-label-md text-on-surface-variant">
-              Doctor Capacity
+              {isPatient ? 'Upcoming Visits' : 'Doctor Capacity'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed-variant">
-              <span className="material-symbols-outlined text-[18px]">vital_signs</span>
+              <span className="material-symbols-outlined text-[18px]">{isPatient ? 'calendar_month' : 'vital_signs'}</span>
             </div>
           </div>
           <div className="flex items-baseline gap-space-sm mt-3">
             <span className="font-headline-xl text-headline-xl text-on-surface tracking-tight tabular-nums">
-              88%
+              {isPatient
+                ? patientAppointments.filter((a) => a.status !== 'Completed' && a.status !== 'Cancelled').length
+                : '88%'}
             </span>
             <span className="font-code-sm text-code-sm text-on-surface-variant font-medium">
-              {doctors.length} Attendings Active
+              {isPatient ? 'Consultations Scheduled' : `${doctors.length} Attendings Active`}
             </span>
           </div>
           <div className="w-full bg-surface-container mt-3 h-1.5 rounded-full overflow-hidden">
@@ -480,37 +512,56 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
-                    Select Existing EHR Patient
-                  </label>
-                  <select
-                    onChange={handlePatientSelect}
-                    value={patients.some((p) => p.mrn === mrn) ? mrn : 'NEW'}
-                    className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-sm text-body-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
-                  >
-                    {patients.map((p) => (
-                      <option key={p._id} value={p.mrn}>
-                        {p.name} (#{p.mrn})
-                      </option>
-                    ))}
-                    <option value="NEW">+ Enter Walk-In Patient Name</option>
-                  </select>
-                </div>
+                {isPatient ? (
+                  <div className="sm:col-span-2 p-3 rounded-xl bg-surface-container-low border border-surface-container-highest flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-sm">
+                        {patientName.split(' ').map((n) => n[0]).slice(0, 2).join('')}
+                      </div>
+                      <div>
+                        <div className="font-title-md text-[14px] text-on-surface font-semibold">{patientName}</div>
+                        <div className="font-code-sm text-[12px] text-on-surface-variant">MRN #{mrn} · Self Booking</div>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
+                      Verified Patient
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                        Select Existing EHR Patient
+                      </label>
+                      <select
+                        onChange={handlePatientSelect}
+                        value={patients.some((p) => p.mrn === mrn) ? mrn : 'NEW'}
+                        className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-sm text-body-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
+                      >
+                        {patients.map((p) => (
+                          <option key={p._id} value={p.mrn}>
+                            {p.name} (#{p.mrn})
+                          </option>
+                        ))}
+                        <option value="NEW">+ Enter Walk-In Patient Name</option>
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
-                    Patient Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    placeholder="Patient full name..."
-                    required
-                    className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-sm text-body-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
-                  />
-                </div>
+                    <div>
+                      <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                        Patient Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        placeholder="Patient full name..."
+                        required
+                        className="w-full h-10 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-sm text-body-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
@@ -606,10 +657,10 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
-                  Real-Time Token Board
+                  {isPatient ? 'Personal Schedule' : 'Real-Time Token Board'}
                 </span>
                 <h2 className="font-headline-sm text-headline-sm text-on-surface">
-                  Live Reception &amp; Outpatient Queue ({filteredAppointments.length})
+                  {isPatient ? 'My Scheduled Consultations' : 'Live Reception & Outpatient Queue'} ({filteredAppointments.length})
                 </h2>
               </div>
 
@@ -685,24 +736,53 @@ export default function AppointmentsView({ data, onRefresh, showToast }) {
                   </div>
 
                   <div className="flex items-center gap-2 self-end sm:self-center">
-                    <select
-                      value={apt.status}
-                      onChange={(e) => handleStatusChange(apt._id, e.target.value)}
-                      className="px-2.5 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest font-label-sm text-[12px] text-on-surface cursor-pointer"
-                    >
-                      <option value="Waiting">Waiting</option>
-                      <option value="Checked-In">Checked-In</option>
-                      <option value="In-Consultation">In-Consultation</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                    <button
-                      onClick={() => handleDeleteAppointment(apt._id)}
-                      title="Cancel & Release Slot"
-                      className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/40 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
+                    {isPatient ? (
+                      <>
+                        <span
+                          className={`px-3 py-1 rounded-full font-label-sm text-[12px] font-semibold border ${
+                            apt.status === 'Completed'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : apt.status === 'In-Consultation'
+                              ? 'bg-blue-50 text-blue-800 border-blue-200'
+                              : apt.status === 'Cancelled' || apt.status === 'CANCELLED'
+                              ? 'bg-rose-50 text-rose-800 border-rose-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {apt.status}
+                        </span>
+                        {apt.status !== 'Completed' && apt.status !== 'Cancelled' && apt.status !== 'CANCELLED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAppointment(apt._id)}
+                            className="px-2.5 py-1 rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 font-label-sm text-[12px] border border-rose-200 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <select
+                          value={apt.status}
+                          onChange={(e) => handleStatusChange(apt._id, e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest font-label-sm text-[12px] text-on-surface cursor-pointer"
+                        >
+                          <option value="Waiting">Waiting</option>
+                          <option value="Checked-In">Checked-In</option>
+                          <option value="In-Consultation">In-Consultation</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <button
+                          onClick={() => handleDeleteAppointment(apt._id)}
+                          title="Cancel & Release Slot"
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/40 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

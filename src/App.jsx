@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiUrl } from './services/api.js';
 import DashboardView from './components/DashboardView.jsx';
 import AppointmentsView from './components/AppointmentsView.jsx';
@@ -26,7 +26,7 @@ const ROLES = [
 
 const ROLE_MODULE_IDS = {
   Doctor: ['dashboard', 'patient-workspace', 'appointments', 'ward-labs'],
-  Patient: ['dashboard'],
+  Patient: ['dashboard', 'appointments'],
   Reception: ['dashboard', 'appointments', 'billing-and-invoices'],
   Pharmacy: ['dashboard', 'pharmacy-inventory'],
   Admin: ['dashboard', 'appointments', 'pharmacy-inventory', 'ward-labs', 'billing-and-invoices']
@@ -107,8 +107,15 @@ export default function App() {
 
   const fetchAllData = useCallback(async () => {
     try {
+      const token = localStorage.getItem('medicare_token');
       const dashRes = await fetch(apiUrl('/api/dashboard'), {
-        headers: { 'x-user-role': currentUser.role }
+        headers: {
+          'x-user-role': currentUser?.role || '',
+          'x-user-email': currentUser?.email || '',
+          'x-user-id': currentUser?._id || '',
+          'x-patient-name': currentUser?.name || '',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
       if (!dashRes.ok) return;
       const dashJson = await dashRes.json();
@@ -409,7 +416,15 @@ export default function App() {
   const renderModuleContent = () => {
     switch (activeModuleId) {
       case 'appointments':
-        return <AppointmentsView data={dashboardData} onRefresh={fetchAllData} showToast={showToast} />;
+        return (
+          <AppointmentsView
+            data={dashboardData}
+            currentUser={currentUser}
+            activeRole={activeRole}
+            onRefresh={fetchAllData}
+            showToast={showToast}
+          />
+        );
       case 'patient-workspace':
         return (
           <PatientWorkspaceView
@@ -431,6 +446,8 @@ export default function App() {
         return (
           <DashboardView
             data={dashboardData}
+            currentUser={currentUser}
+            activeRole={activeRole}
             onNavigate={handleNavigate}
             onSelectPatient={setSelectedPatient}
             onRefresh={fetchAllData}
@@ -461,49 +478,66 @@ export default function App() {
               <button type="button" data-testid="close-mobile-navigation" aria-label="Close navigation" className="lg:hidden material-symbols-outlined text-[20px] text-on-surface-variant" onClick={() => setIsMobileMenuOpen(false)}>close</button>
             </div>
 
-            <div className="p-3 border-b border-surface-container-highest">
-              <label className="text-[11px] text-on-surface-variant uppercase tracking-wide block mb-2">Patient search</label>
-              <input
-                id="globalEhrSearchInput"
-                value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
-                placeholder="Search patient / MRN"
-                className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
-              />
-              {searchResults && searchResults.length > 0 && (
-                <div className="mt-2 rounded-xl border border-surface-container-highest bg-surface-container-low p-2 space-y-1">
-                  {searchResults.slice(0, 4).map((patient) => (
-                    <button
-                      key={patient._id}
-                      type="button"
-                      onClick={() => { setSelectedPatient(patient); setGlobalSearch(''); }}
-                      className="w-full text-left rounded-lg px-2 py-1.5 hover:bg-surface-container text-on-surface"
-                    >
-                      <div className="font-label-sm text-label-sm">{patient.name}</div>
-                      <div className="font-code-sm text-[11px] text-on-surface-variant">#{patient.mrn}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Patient Search bar: strictly for Clinical Staff (Doctor, Reception, Admin) - NOT for patients */}
+            {activeRole !== 'Patient' && (
+              <div className="p-3 border-b border-surface-container-highest">
+                <label className="text-[11px] text-on-surface-variant uppercase tracking-wide block mb-2">Patient search</label>
+                <input
+                  id="globalEhrSearchInput"
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  placeholder="Search patient / MRN"
+                  className="w-full rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+                />
+                {searchResults && searchResults.length > 0 && (
+                  <div className="mt-2 rounded-xl border border-surface-container-highest bg-surface-container-low p-2 space-y-1">
+                    {searchResults.slice(0, 4).map((patient) => (
+                      <button
+                        key={patient._id}
+                        type="button"
+                        onClick={() => { setSelectedPatient(patient); setGlobalSearch(''); }}
+                        className="w-full text-left rounded-lg px-2 py-1.5 hover:bg-surface-container text-on-surface"
+                      >
+                        <div className="font-label-sm text-label-sm">{patient.name}</div>
+                        <div className="font-code-sm text-[11px] text-on-surface-variant">#{patient.mrn}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <nav className="p-3 space-y-2">
-              {CLINICAL_MODULES.filter((module) => allowedModuleIds.includes(module.id)).map((module) => (
-                <button
-                  key={module.id}
-                  type="button"
-                  onClick={() => handleNavigate(module.id)}
-                  aria-current={activeModuleId === module.id ? 'page' : undefined}
-                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                    activeModuleId === module.id
-                      ? 'bg-primary text-on-primary shadow-sm'
-                      : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[18px]">{module.icon}</span>
-                  <span className="font-label-md text-label-md">{module.label}</span>
-                </button>
-              ))}
+              {CLINICAL_MODULES.filter((module) => allowedModuleIds.includes(module.id)).map((module) => {
+                const label =
+                  activeRole === 'Patient'
+                    ? module.id === 'dashboard'
+                      ? 'My Health Portal'
+                      : module.id === 'appointments'
+                      ? 'My Appointments'
+                      : module.label
+                    : module.label;
+                const icon =
+                  activeRole === 'Patient' && module.id === 'dashboard'
+                    ? 'health_and_safety'
+                    : module.icon;
+                return (
+                  <button
+                    key={module.id}
+                    type="button"
+                    onClick={() => handleNavigate(module.id)}
+                    aria-current={activeModuleId === module.id ? 'page' : undefined}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                      activeModuleId === module.id
+                        ? 'bg-primary text-on-primary shadow-sm'
+                        : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                    <span className="font-label-md text-label-md">{label}</span>
+                  </button>
+                );
+              })}
             </nav>
 
             <div className="mt-auto border-t border-surface-container-highest p-4 space-y-3">
